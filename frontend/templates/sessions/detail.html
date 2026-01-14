@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="Breadcrumb" class="text-sm">
+        <ol class="flex items-center space-x-2">
+            <li>
+                <a href="{{ url_for('sessions.list_sessions') }}" class="text-fyf-primary hover:underline focus:outline-none focus:ring-2 focus:ring-fyf-primary focus:ring-offset-2 rounded">
+                    Sessions
+                </a>
+            </li>
+            <li aria-hidden="true">
+                <svg class="w-4 h-4 text-fyf-secondary" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                </svg>
+            </li>
+            <li aria-current="page" class="text-fyf-secondary">
+                {{ session.course_name }}
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Course header -->
+    <header class="card">
+        <h1 class="text-2xl sm:text-3xl font-heading font-bold text-fyf-tertiary mb-2">
+            {{ session.course_name }}
+        </h1>
+        <div class="flex flex-wrap gap-4 text-fyf-tertiary">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 mr-2 text-fyf-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                <span>Instructor: <strong>{{ session.instructor_name }}</strong></span>
+            </div>
+            <div class="flex items-center">
+                <svg class="w-5 h-5 mr-2 text-fyf-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <span>{{ session.session_date }} at {{ session.session_time }}</span>
+            </div>
+        </div>
+        {% if session.is_past %}
+        <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p class="text-amber-800 font-medium">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                This session is in the past. Attendance records are read-only.
+            </p>
+        </div>
+        {% endif %}
+    </header>
+
+    <!-- Attendance summary -->
+    <div id="attendance-summary" class="card">
+        <h2 class="text-lg font-heading font-semibold text-fyf-tertiary mb-4">Attendance Summary</h2>
+        <div class="flex flex-wrap gap-4" role="status" aria-live="polite">
+            <span class="badge-attended" id="summary-attended">Attended: 0</span>
+            <span class="badge-not-attended" id="summary-not-attended">Not Here: 0</span>
+            <span class="badge-late" id="summary-late">Late: 0</span>
+            <span class="badge-unmarked" id="summary-unmarked">Unmarked: 0</span>
+        </div>
+    </div>
+
+    <!-- Search and filter -->
+    <div class="card">
+        <div class="flex flex-col sm:flex-row gap-4">
+            <div class="flex-1">
+                <label for="attendee-search" class="form-label">
+                    Search Attendees
+                </label>
+                <input 
+                    type="search" 
+                    id="attendee-search" 
+                    class="form-input" 
+                    placeholder="Type a name to search..."
+                    aria-describedby="search-hint"
+                >
+                <span id="search-hint" class="text-sm text-fyf-tertiary mt-1 block">
+                    Start typing to filter the list by name
+                </span>
+            </div>
+            <div>
+                <label for="status-filter" class="form-label">
+                    Filter by Status
+                </label>
+                <select id="status-filter" class="form-input">
+                    <option value="all">All</option>
+                    <option value="unmarked">Unmarked</option>
+                    <option value="attended">Attended</option>
+                    <option value="not_attended">Not Here</option>
+                    <option value="late">Late</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendee list -->
+    <div class="card">
+        <h2 class="text-lg font-heading font-semibold text-fyf-tertiary mb-4">Attendees</h2>
+        
+        <!-- Live region for screen reader announcements -->
+        <div id="status-announcements" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+        
+        <div id="attendee-list" class="space-y-3" role="list" aria-label="Attendee list">
+            <div class="text-center py-8 text-fyf-tertiary">
+                <svg class="w-8 h-8 mx-auto mb-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Loading attendees...
+            </div>
+        </div>
+        
+        <!-- Pagination -->
+        <nav id="pagination" class="mt-6 flex justify-center items-center gap-2" aria-label="Pagination" style="display: none;">
+            <button id="prev-page" class="btn-secondary px-4 py-2" disabled>
+                Previous
+            </button>
+            <span id="page-info" class="text-fyf-tertiary">Page 1 of 1</span>
+            <button id="next-page" class="btn-secondary px-4 py-2" disabled>
+                Next
+            </button>
+        </nav>
+    </div>
+</div>
+
+<!-- Late reason modal -->
+<div id="late-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="late-modal-title">
+    <div class="fixed inset-0 bg-black bg-opacity-50" id="modal-backdrop"></div>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
+            <h2 id="late-modal-title" class="text-xl font-heading font-bold text-fyf-tertiary mb-4">
+                Record Late Arrival
+            </h2>
+            <p class="text-fyf-tertiary mb-4">
+                Recording late arrival for <span id="late-attendee-name" class="font-semibold"></span>
+            </p>
+            <form id="late-reason-form">
+                <input type="hidden" id="late-attendee-id" name="attendee_id">
+                
+                <!-- Arrival Time (Required) -->
+                <div class="mb-4">
+                    <label for="late-arrival-time" class="form-label">
+                        What time did they arrive? <span class="text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="time" 
+                        id="late-arrival-time" 
+                        name="late_arrival_time" 
+                        class="form-input"
+                        required
+                        aria-required="true"
+                    >
+                    <p class="text-sm text-fyf-tertiary mt-1">Enter the time the attendee arrived</p>
+                </div>
+                
+                <!-- Notes (Optional) -->
+                <div class="mb-4">
+                    <label for="late-reason" class="form-label">
+                        Notes <span class="text-fyf-tertiary font-normal">(optional)</span>
+                    </label>
+                    <textarea 
+                        id="late-reason" 
+                        name="late_reason" 
+                        class="form-input" 
+                        rows="2" 
+                        maxlength="500"
+                        placeholder="e.g., Bus was delayed, had a doctor's appointment..."
+                        aria-describedby="late-reason-counter"
+                    ></textarea>
+                    <div id="late-reason-counter" class="text-sm text-fyf-tertiary mt-1">
+                        <span id="char-count">0</span>/500 characters
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button type="submit" class="btn-primary flex-1">
+                        Save
+                    </button>
+                    <button type="button" id="cancel-late" class="btn-secondary flex-1">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Session data for JavaScript
+    const SESSION_ID = "{{ session.session_id }}";
+    const IS_PAST = {{ 'true' if session.is_past else 'false' }};
+</script>
+<script src="{{ url_for('static', filename='js/attendance.js') }}"></script>
+{% endblock %}

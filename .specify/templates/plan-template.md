@@ -31,7 +31,14 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Requirement | Status |
+|-----------|-------------|--------|
+| I. Accessibility First | WCAG 2.1 AA compliance planned? Keyboard navigation? Screen reader tested? | ☐ |
+| II. Plain Language | User-facing content at Year 5-6 reading level? Error messages clear? | ☐ |
+| III. Serverless & Well-Architected | AWS Lambda + API Gateway? DynamoDB/S3? CloudFormation? Well-Architected pillars reviewed? LOCAL_MODE switch for local development with substitutes (DynamoDB Local, local file storage)? | ☐ |
+| IV. Brand Consistency | Using brand colours (#F36F21, #D8D9D1, #333333)? Tailwind configured? | ☐ |
+| V. Data Protection | GDPR compliant? Only necessary data collected? Encryption in place? | ☐ |
+| VI. Test-Driven Quality | Unit, integration, and accessibility tests planned? | ☐ |
 
 ## Project Structure
 

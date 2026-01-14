@@ -1,0 +1,17 @@
+{
+  "name": "fyf-attendance-frontend",
+  "version": "1.0.0",
+  "description": "Find Your Feet CIC - Course Attendance Registration Frontend",
+  "scripts": {
+    "dev": "npx tailwindcss -i ./src/input.css -o ./static/css/output.css --watch",
+    "build": "npx tailwindcss -i ./src/input.css -o ./static/css/output.css --minify",
+    "test:a11y": "pa11y-ci"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0",
+    "pa11y-ci": "^3.1.0"
+  },
+  "author": "Find Your Feet CIC",
+  "license": "UNLICENSED",
+  "private": true
+}

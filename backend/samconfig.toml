@@ -1,0 +1,67 @@
+# Find Your Feet CIC - Course Attendance Registration
+# SAM CLI Configuration File
+# 
+# Usage:
+#   sam build
+#   sam deploy --config-env development
+#   sam deploy --config-env production
+
+version = 0.1
+
+[default]
+[default.global.parameters]
+stack_name = "fyf-attendance"
+region = "eu-west-2"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+confirm_changeset = true
+resolve_s3 = true
+s3_prefix = "fyf-attendance"
+
+[default.sync.parameters]
+watch = true
+
+[default.local_start_api.parameters]
+warm_containers = "EAGER"
+
+[default.local_start_lambda.parameters]
+warm_containers = "EAGER"
+
+# Development Environment
+[development]
+[development.deploy.parameters]
+stack_name = "fyf-attendance-dev"
+s3_prefix = "fyf-attendance-dev"
+parameter_overrides = "Environment=development"
+confirm_changeset = false
+disable_rollback = true
+tags = "Application=FYF-Attendance Environment=development"
+
+# Staging Environment
+[staging]
+[staging.deploy.parameters]
+stack_name = "fyf-attendance-staging"
+s3_prefix = "fyf-attendance-staging"
+parameter_overrides = "Environment=staging"
+confirm_changeset = true
+disable_rollback = false
+tags = "Application=FYF-Attendance Environment=staging"
+
+# Production Environment
+[production]
+[production.deploy.parameters]
+stack_name = "fyf-attendance-prod"
+s3_prefix = "fyf-attendance-prod"
+parameter_overrides = "Environment=production"
+confirm_changeset = true
+disable_rollback = false
+fail_on_empty_changeset = false
+tags = "Application=FYF-Attendance Environment=production"

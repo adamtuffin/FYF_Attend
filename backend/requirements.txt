@@ -1,0 +1,29 @@
+# Find Your Feet - Course Attendance Registration
+# Python 3.11+
+
+# Web Framework
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# AWS Lambda WSGI Adapter
+aws-wsgi==0.2.7
+
+# AWS SDK
+boto3==1.34.0
+botocore==1.34.0
+
+# Templating
+Jinja2==3.1.2
+MarkupSafe==2.1.3
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+moto==4.2.12
+
+# Utilities
+python-dotenv==1.0.0
+python-dateutil==2.8.2
+
+# Type hints
+typing-extensions==4.9.0

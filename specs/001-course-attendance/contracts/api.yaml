@@ -1,0 +1,423 @@
+openapi: 3.0.3
+info:
+  title: Find Your Feet - Course Attendance API
+  description: API for recording and viewing course attendance
+  version: 1.0.0
+  contact:
+    name: Find Your Feet CIC
+
+servers:
+  - url: /api/v1
+    description: API base path
+
+paths:
+  /sessions:
+    get:
+      summary: Get upcoming course sessions
+      description: Returns a list of course sessions for today and the next 7 days
+      operationId: getSessions
+      parameters:
+        - name: include_past
+          in: query
+          description: Include past sessions (read-only)
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: List of course sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CourseSession'
+                  total:
+                    type: integer
+                    example: 5
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /sessions/{sessionId}:
+    get:
+      summary: Get a specific course session
+      description: Returns details of a single course session
+      operationId: getSession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Course session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseSession'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /sessions/{sessionId}/attendees:
+    get:
+      summary: Get attendees for a session
+      description: Returns paginated list of attendees with their attendance status
+      operationId: getSessionAttendees
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          description: Number of attendees per page
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 50
+            default: 25
+        - name: search
+          in: query
+          description: Filter attendees by name (case-insensitive)
+          schema:
+            type: string
+        - name: status_filter
+          in: query
+          description: Filter by attendance status
+          schema:
+            type: string
+            enum: [unmarked, attended, not_attended, late]
+      responses:
+        '200':
+          description: Paginated list of attendees with attendance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attendees:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AttendeeWithStatus'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  summary:
+                    $ref: '#/components/schemas/AttendanceSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /sessions/{sessionId}/attendance:
+    post:
+      summary: Record attendance for an attendee
+      description: Create or update attendance record for a single attendee
+      operationId: recordAttendance
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceInput'
+      responses:
+        '200':
+          description: Attendance recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceRecord'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          description: Cannot edit past session attendance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /config/test-data:
+    get:
+      summary: Get test configuration data
+      description: Returns current test data (LOCAL_MODE only)
+      operationId: getTestData
+      responses:
+        '200':
+          description: Current test data configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestDataConfig'
+        '403':
+          description: Test data endpoint not available (not in LOCAL_MODE)
+
+    post:
+      summary: Save test configuration data
+      description: Create or update test courses, sessions, and attendees (LOCAL_MODE only)
+      operationId: saveTestData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestDataConfig'
+      responses:
+        '200':
+          description: Test data saved successfully
+        '403':
+          description: Test data endpoint not available (not in LOCAL_MODE)
+
+    delete:
+      summary: Clear all test data
+      description: Remove all test configuration data (LOCAL_MODE only)
+      operationId: clearTestData
+      responses:
+        '204':
+          description: Test data cleared successfully
+        '403':
+          description: Test data endpoint not available (not in LOCAL_MODE)
+
+components:
+  parameters:
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      description: Unique session identifier
+      schema:
+        type: string
+
+  schemas:
+    CourseSession:
+      type: object
+      required:
+        - session_id
+        - course_name
+        - instructor_name
+        - session_date
+        - session_time
+      properties:
+        session_id:
+          type: string
+          example: "sess-2026-01-13-001"
+        course_id:
+          type: string
+          example: "course-001"
+        course_name:
+          type: string
+          example: "First Aid Training"
+        instructor_name:
+          type: string
+          example: "Dr. Sarah Johnson"
+        session_date:
+          type: string
+          format: date
+          example: "2026-01-13"
+        session_time:
+          type: string
+          pattern: "^[0-2][0-9]:[0-5][0-9]$"
+          example: "10:00"
+        is_past:
+          type: boolean
+          description: Whether this session has already occurred
+          example: false
+        attendee_count:
+          type: integer
+          description: Total number of registered attendees
+          example: 45
+
+    Attendee:
+      type: object
+      required:
+        - attendee_id
+        - name
+      properties:
+        attendee_id:
+          type: string
+          description: Unique identifier (for integration, not displayed)
+          example: "att-12345"
+        name:
+          type: string
+          description: Full name (displayed to users)
+          example: "Jane Smith"
+
+    AttendeeWithStatus:
+      allOf:
+        - $ref: '#/components/schemas/Attendee'
+        - type: object
+          properties:
+            status:
+              type: string
+              enum: [unmarked, attended, not_attended, late]
+              example: "attended"
+            late_reason:
+              type: string
+              maxLength: 500
+              example: "Bus was delayed due to traffic"
+            recorded_at:
+              type: string
+              format: date-time
+              example: "2026-01-13T10:15:00Z"
+
+    AttendanceInput:
+      type: object
+      required:
+        - attendee_id
+        - status
+      properties:
+        attendee_id:
+          type: string
+          example: "att-12345"
+        status:
+          type: string
+          enum: [attended, not_attended, late]
+        late_reason:
+          type: string
+          maxLength: 500
+          description: Required when status is 'late'
+
+    AttendanceRecord:
+      type: object
+      properties:
+        session_id:
+          type: string
+        attendee_id:
+          type: string
+        attendee_name:
+          type: string
+        status:
+          type: string
+          enum: [attended, not_attended, late]
+        late_reason:
+          type: string
+        recorded_at:
+          type: string
+          format: date-time
+
+    AttendanceSummary:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 45
+        attended:
+          type: integer
+          example: 30
+        not_attended:
+          type: integer
+          example: 10
+        late:
+          type: integer
+          example: 3
+        unmarked:
+          type: integer
+          example: 2
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        page_size:
+          type: integer
+          example: 25
+        total_items:
+          type: integer
+          example: 45
+        total_pages:
+          type: integer
+          example: 2
+        has_next:
+          type: boolean
+        has_prev:
+          type: boolean
+
+    TestDataConfig:
+      type: object
+      properties:
+        courses:
+          type: array
+          items:
+            type: object
+            properties:
+              course_id:
+                type: string
+              name:
+                type: string
+              instructor_name:
+                type: string
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseSession'
+        attendees:
+          type: array
+          items:
+            type: object
+            properties:
+              attendee_id:
+                type: string
+              name:
+                type: string
+              session_id:
+                type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Something went wrong"
+        message:
+          type: string
+          description: Plain language error description
+          example: "We couldn't save the attendance. Please try again."
+        code:
+          type: string
+          example: "VALIDATION_ERROR"
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Not Found"
+            message: "We couldn't find that session. It may have been removed."
+            code: "NOT_FOUND"
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Validation Error"
+            message: "Please tell us why the attendee was late before saving."
+            code: "LATE_REASON_REQUIRED"
+
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Server Error"
+            message: "Something went wrong on our end. Please try again in a moment."
+            code: "INTERNAL_ERROR"
